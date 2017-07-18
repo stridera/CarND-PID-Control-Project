@@ -1,6 +1,13 @@
 # CarND-Controls-PID
 Self-Driving Car Engineer Nanodegree Program
 
+## Reflections
+To determine PID values, I went with a different twiddle algoritm than presented in class.  For my approach, I took each of the params, and nudged them up or down and compared it to my score.  (Score was calculated by taking the running sum of CTE values and dividing by the number of frames we've stepped through.)  I let this run overnight and let it go until it was stepping by 0.00001 per iteration.  By then, I figured the values were good enough.  I ended up with parameters of {0.16081, 0.00132, 0.98172}.  You can turn the twiddler on if curious by toggling the constant.
+
+As for the values themselves:
+* P - Proportional - This keeps it driving straight but alone keeps it weaving back and forth.  At higher values, the weaving gets larger and larger until it goes off the road.
+* I - Integration - This takes into account the past values and uses it to help balance out steering.  It needs to be low.
+* D - Derivative - This helps dampen the oscillation effect caused by the p value.  This also helps with drift.  If this goes too high, the car doesn't respond very quickly and drives off the road, even turning back upon itself.
 ---
 
 ## Dependencies
