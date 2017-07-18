@@ -36,13 +36,14 @@ void reset_simulator(uWS::WebSocket<uWS::SERVER> &ws) {
     ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
 }
 
+const bool use_twiddler = false;
 int main() {
     uWS::Hub h;
     bool init = false;
 
-    twiddle twiddler(0.01);
+    twiddle twiddler(0.001);
     PID pid;
-    std::vector<double> v = twiddler.Init({0.1, 0.001, 1.0});
+    std::vector<double> v = twiddler.Init({0.16081, 0.00132, 0.98172});
     pid.Init(v[0], v[1], v[2]);
 
     int step = 0; // The current step.  (Frame?)
@@ -67,29 +68,30 @@ int main() {
                     double speed = std::stod(j[1]["speed"].get<std::string>());
 //                    double angle = std::stod(j[1]["steering_angle"].get<std::string>());
 
-                    // Try time based.  If the CTE goes above 7, it means we're off the road.  Lets keep
-                    // tw∂iddling until we stay on the road as long as possible.  After a given period of time,
-                    // we can lower this to try to get it tighter.  Also track speed.  If we're below 0.01 for
-                    // we'll consider ourselves stuck and a failure.  Skipping the first 5 frames for safety.
-                    score += fabs(cte);
+                    if (use_twiddler) {
+                        // Try time based.  If the CTE goes above 7, it means we're off the road.  Lets keep
+                        // twiddling until we stay on the road as long as possible.  After a given period of time,
+                        // we can lower this to try to get it tighter.  Also track speed.  If we're below 0.01 for
+                        // we'll consider ourselves stuck and a failure.  Skipping the first 5 frames for safety.
+                        score += fabs(cte);
 
-                    if (step > 5) {
-                        if (step > max_steps) {
-                            failure_cte -= 0.1;
-                        }
+                        if (step > 5) {
+                            if (step > max_steps) {
+                                failure_cte -= 0.1;
+                            }
 
-                        if (cte > failure_cte || speed < 0.1 || step > max_steps) {
-                            std::cout << "Run Complete!  CTE: " << cte << "  Speed: " << speed << " Steps: " << step
-                                      << std::endl;
-                            std::vector<double> values = twiddler.Iterate(score / step);
-                            pid.Init(values[0], values[1], values[2]);
+                            if (cte > failure_cte || speed < 0.1 || step >= max_steps) {
+                                std::cout << "Run Complete!  CTE: " << cte << "  Speed: " << speed << " Steps: " << step
+                                          << std::endl;
+                                std::vector<double> values = twiddler.Iterate(score / step);
+                                pid.Init(values[0], values[1], values[2]);
 
-                            step = 0;
-                            score = 0;
-                            return reset_simulator(ws);
+                                step = 0;
+                                score = 0;
+                                return reset_simulator(ws);
+                            }
                         }
                     }
-
                     pid.UpdateError(cte);
 
                     // Calculate steering value here, remember the steering value is [-1, 1].

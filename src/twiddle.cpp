@@ -25,7 +25,7 @@ std::vector<double> twiddle::Init(std::vector<double> init) {
     current_param = 0;
     going_up = false;
 
-    attempts_before_switching = 3;
+    attempts_before_switching = 2;
     current_attempt = 0;
 
     cout << "Params: (" << params[0] << ", " << params[1] << ", " << params[2] << ")" << endl;
@@ -54,30 +54,38 @@ std::vector<double> twiddle::Iterate(double error=999999) {
         }
     } else {
         current_attempt++;
-        if (current_attempt > attempts_before_switching) {
+        if (current_attempt >= attempts_before_switching) {
             cout << "Flipping" << endl;
             going_up = !going_up;
             iteration++;
             current_attempt = 0;
-            if (going_up) {
-                cout << "Param " << current_param << " going up by " << current_step << endl;
-                params[current_param] += current_step;
-            } else {
-                cout << "Param " << current_param << " going down by " << current_step << endl;
-                params[current_param] -= current_step;
-            }
-            if (iteration > 6) {
+            
+            if (iteration >= 3) {
                 iteration = 0;
+                best_error = 9999999; // Reset this each time in case we had some lucky test run
                 // By now we bounced back and forth a few times, so we'll just go to the last saved value and step through params.
                 cout << "Stepping Params" << endl;
                 params = saved;
                 current_param ++;
-                if (current_param > params.size()) {
+                if (current_param >= params.size()) {
                     current_param = 0;
                     // Stepping down
                     cout << "Moving from a step of " << current_step;
                     current_step /= 10;
+                    if (current_step < 0.00001) {
+                        cout << "Probably gone as deep as we'll ever go.  Goodbye!" << endl;
+                        exit(1);
+                    }
                     cout << " to a step of " << current_step << endl;
+                }
+                params[current_param] += current_step;
+            } else {
+                if (going_up) {
+                    cout << "Param " << current_param << " going double up by " << current_step*2 << endl;
+                    params[current_param] += current_step*2;
+                } else {
+                    cout << "Param " << current_param << " going double down by " << current_step*2 << endl;
+                    params[current_param] -= current_step*2;
                 }
             }
         }
